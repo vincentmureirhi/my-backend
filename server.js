@@ -1,35 +1,35 @@
 const express = require('express');
-const mongoose = require('mongoose');
-
+const bodyParser = require('body-parser');
 const app = express();
-app.use(express.json());
+const port = 5000;
 
-// MongoDB connection
-mongoose.connect('mongodb://localhost:27017/products', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.log(err));
+// Middleware
+app.use(bodyParser.json());
 
-// Define your product schema and model
-const productSchema = new mongoose.Schema({
-    name: String,
-    price: Number,
-    barcode: String,
+// In-memory store (replace with database in production)
+const products = {};
+
+// Add Product Endpoint
+app.post('/api/products', (req, res) => {
+  const { name, code, price } = req.body;
+  if (!name || !code || !price) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  products[code] = { name, price };
+  res.status(201).json({ message: 'Product added successfully' });
 });
 
-const Product = mongoose.model('Product', productSchema);
-
-// API route to add products
-app.post('/api/products', async (req, res) => {
-    const product = new Product(req.body);
-    await product.save();
-    res.send(product);
+// Fetch Product Details Endpoint
+app.get('/api/products/:code', (req, res) => {
+  const { code } = req.params;
+  const product = products[code];
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  res.json(product);
 });
 
-// Start the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// Start Server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
